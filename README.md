@@ -67,7 +67,6 @@ spec:
     securityContext:
       runAsUser: {{ .Container.UID }}
       fsGroup: {{ .Container.GID }}
-  restartPolicy: Never
 ```
 
 *Some few notes to remember the pod-runner will automatically set the `restartPolicy` to `Never` otherwise the Pod will go into `CrashLoop`  If possible, set the `activeDeadlineSeconds` to make sure that the Pod does not run indefinitely.*
