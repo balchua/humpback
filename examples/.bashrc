@@ -1,0 +1,1 @@
+export APP_HOME=/usr/src/app

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .Name }}-{{ .UniqueId }}
+  labels:
+    app: {{ .Name }}
+    appUnique: {{ .Name }}-{{ .UniqueId }}
+spec:
+  containers:
+  - image: {{ .Container.Image }}
+    args: [{{ .Container.Arguments }}]
+    imagePullPolicy: IfNotPresent
+    name: {{ .Name }}
+    securityContext:
+      runAsUser: {{ .Container.UID }}
+      fsGroup: {{ .Container.GID }}
+  

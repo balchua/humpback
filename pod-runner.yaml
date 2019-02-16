@@ -1,0 +1,25 @@
+applications:
+- name: app1
+  template: /home/thor/workspace/go-work/src/github.com/balchua/pod-runner/examples/pod1.tmpl
+  container:
+    resource-requests:
+      memory: 10Mi
+      cpu: 
+    resource-limits:
+      memory: 50Mi
+      cpu:
+    image: balchua/app1:1.0
+    uid: 1000
+    gid: 1000
+- name: app2
+  template: /home/thor/workspace/go-work/src/github.com/balchua/pod-runner/examples/pod1.tmpl
+  container:
+    resource-requests:
+      memory: 10Mi
+      cpu: 
+    resource-limits:
+      memory: 50Mi
+      cpu:
+    image: balchua/demo:1.0
+    uid: 2000
+    gid: 2000
