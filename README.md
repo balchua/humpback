@@ -2,7 +2,7 @@
 
 ## Overview
 A simple pod scheduler which waits for the pod's result.  
-This tool can external Job scheduler to trigger pod execution.
+This tool can help external Job scheduler to trigger pod execution.
 
 Cases wherein you need to execute commands inside an image, this tool can come in handy to make sure you are able to execute a completable command inside your image without the need to stand up an SSH daemon for Job orchestrator to connect to.
 
