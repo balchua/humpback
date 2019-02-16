@@ -112,7 +112,9 @@ If the Pod goes into ImagePullError, the pod runner does not appear to detect th
 
 * Run `go build`
 
+## Examples
 
+Check out the directory `examples`
 
 
     

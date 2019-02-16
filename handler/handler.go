@@ -18,6 +18,7 @@ import (
 
 var clientset *kubernetes.Clientset
 
+//Handler - this holds the information to help render the template and schedule the pod to the cluster.
 type Handler struct {
 	clientset             *kubernetes.Clientset
 	applicationToSchedule string
@@ -29,6 +30,7 @@ type Handler struct {
 	PodScheduled          bool
 }
 
+//Init - Initializes the Handler with necessary information
 func Init(applicationToSchedule string, namespace string, command string,
 	clientset *kubernetes.Clientset) (h *Handler) {
 
@@ -43,6 +45,7 @@ func Init(applicationToSchedule string, namespace string, command string,
 
 }
 
+//Schedule -  Renders the template and Schedule the Pod to the namespace
 func (h *Handler) Schedule() {
 	h.PodScheduled = false
 	if h.renderTemplate() {
