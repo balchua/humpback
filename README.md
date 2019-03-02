@@ -92,6 +92,11 @@ Where:
 
 *Any Pod Status, that results to other than `Successful` will be returned as an error i.e. `exit(1)`*
 
+## Abrupt shutdown
+
+The pod-runner will react to SIGTERM, SIGQUIT, SIGKILL and SIGHUP.
+Thes os signals will force pod-runner to delete the pod.  Signalling to terminate the "Job".  This is to avoid excessive "completed" or "failed" pods in the cluster, relieving potential cluster space pressure.
+
 ## Cleanup
 
 The controller will automatically delete the pod, as soon as it completes or failed.  The pod logs are tailed to the console.
