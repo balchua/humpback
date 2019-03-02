@@ -105,7 +105,7 @@ For example:
 `/usr/src/app/main-good.sh $APP_HOME` - the `$APP_HOME` will not be interpolated.  In order to mitigate this,  the `$APP_HOME` must be resolved from inside the shell script, in this case `/usr/src/app/main-good.sh`
 
 ~~If the Pod goes into ImagePullError, the pod runner does not appear to detect this, leaving it in Pending mode.  It will not complete.~~
-This is now supported.  While the PodStatus is in Pending state, and if the containerStatus is `ContainerCreating` it is assumed its an ImagePullError.
+This is now supported.  While the PodStatus is in Pending state, and if the containerStatus is not `ContainerCreating` it is assumed its an ImagePullError.
 
 
 ## Build
