@@ -92,6 +92,10 @@ Where:
 
 *Any Pod Status, that results to other than `Successful` will be returned as an error i.e. `exit(1)`*
 
+## Cleanup
+
+The controller will automatically delete the pod, as soon as it completes or failed.  The pod logs are tailed to the console.
+
 ## Limitations
 
 The command to run will not be able to interpolate any environment variables defined at the Container `args`.
@@ -100,7 +104,8 @@ For example:
 
 `/usr/src/app/main-good.sh $APP_HOME` - the `$APP_HOME` will not be interpolated.  In order to mitigate this,  the `$APP_HOME` must be resolved from inside the shell script, in this case `/usr/src/app/main-good.sh`
 
-If the Pod goes into ImagePullError, the pod runner does not appear to detect this, leaving it in Pending mode.  It will not complete.
+~~If the Pod goes into ImagePullError, the pod runner does not appear to detect this, leaving it in Pending mode.  It will not complete.~~
+This is now supported.  While the PodStatus is in Pending state, and if the containerStatus is `ContainerCreating` it is assumed its an ImagePullError.
 
 
 ## Build
