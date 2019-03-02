@@ -55,7 +55,7 @@ func init() {
 	logrus.SetOutput(os.Stdout)
 
 	// Only log the warning severity or above.
-	logrus.SetLevel(logrus.InfoLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	rootCmd.PersistentFlags().StringVarP(&application, "application", "a", "", "The application to run.")
 	rootCmd.PersistentFlags().StringVarP(&command, "command", "c", "", "The Job to run.")

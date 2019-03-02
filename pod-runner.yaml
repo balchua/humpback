@@ -4,11 +4,11 @@ applications:
   container:
     resource-requests:
       memory: 10Mi
-      cpu: 
+      cpu: 10m
     resource-limits:
       memory: 50Mi
-      cpu:
-    image: balchua/app1:1.0
+      cpu: 10m
+    image: balchua/sample:1.0
     uid: 1000
     gid: 1000
 - name: app2
@@ -16,10 +16,10 @@ applications:
   container:
     resource-requests:
       memory: 10Mi
-      cpu: 
+      cpu: 10m
     resource-limits:
       memory: 50Mi
-      cpu:
-    image: balchua/demo:1.0
+      cpu: 10m
+    image: balchua/app1:1.0
     uid: 2000
     gid: 2000

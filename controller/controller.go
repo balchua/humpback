@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/signal"
@@ -25,9 +26,12 @@ const maxRetries = 5
 
 // Controller object
 type Controller struct {
-	clientset kubernetes.Interface
-	queue     workqueue.RateLimitingInterface
-	informer  cache.SharedIndexInformer
+	clientset      kubernetes.Interface
+	queue          workqueue.RateLimitingInterface
+	informer       cache.SharedIndexInformer
+	pod            *api_v1.Pod
+	hasTailStarted bool
+	TailClosed     chan int
 }
 
 /*
@@ -57,9 +61,16 @@ func Start(kubeClient *kubernetes.Clientset, namespace string, listOptions meta_
 	go c.Run(stopCh)
 
 	sigterm := make(chan os.Signal, 1)
-	signal.Notify(sigterm, syscall.SIGTERM)
-	signal.Notify(sigterm, syscall.SIGINT)
-	<-sigterm
+	signal.Notify(sigterm,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
+
+	go shutdownHook(c, sigterm)
+	exitChan := make(chan int)
+
+	<-exitChan
 }
 
 // Only act on when Pod is updated.
@@ -78,9 +89,10 @@ func newResourceController(client kubernetes.Interface, informer cache.SharedInd
 	})
 
 	return &Controller{
-		clientset: client,
-		informer:  informer,
-		queue:     queue,
+		clientset:  client,
+		informer:   informer,
+		queue:      queue,
+		TailClosed: make(chan int, 1),
 	}
 }
 
@@ -148,18 +160,33 @@ func (c *Controller) processItem(key string) bool {
 
 	if obj != nil {
 		pod := obj.(*api_v1.Pod)
+		c.pod = pod
 		logrus.Infof("Running the pod %s with status %s", pod.ObjectMeta.Name, pod.Status.Phase)
 		if pod.Status.Phase == api_v1.PodFailed {
-			logrus.Infof("Pod (%s) on namespace (%s) status is %s", pod.ObjectMeta.Name,
+			logrus.Errorf("Pod (%s) on namespace (%s) status is %s", pod.ObjectMeta.Name,
 				pod.ObjectMeta.Namespace, pod.Status.Phase)
 
-			exitWithError()
+			c.exitWithError()
 		} else if pod.Status.Phase == api_v1.PodSucceeded {
 
 			logrus.Infof("Pod (%s) on namespace (%s) status is %s", pod.ObjectMeta.Name,
 				pod.ObjectMeta.Namespace, pod.Status.Phase)
-			exitNoError()
+			c.exitNoError()
+		} else if pod.Status.Phase == api_v1.PodPending {
+			logrus.Infof("Pod (%s) on namespace (%s) status is %s", pod.ObjectMeta.Name,
+				pod.ObjectMeta.Namespace, pod.Status.Phase)
+			if c.hasErrorWhenStartingContainer(pod) {
+				c.exitWithError()
+			}
+		} else if pod.Status.Phase == api_v1.PodRunning {
+
+			logrus.Infof("Pod Job Started (%s) on namespace (%s) status is %s", pod.ObjectMeta.Name,
+				pod.ObjectMeta.Namespace, pod.Status.Phase)
+			go c.tailLogs()
+
 		} else {
+			logrus.Infof("Pod (%s) on namespace (%s) status is %s", pod.ObjectMeta.Name,
+				pod.ObjectMeta.Namespace, pod.Status.Phase)
 			return false
 		}
 	}
@@ -167,10 +194,136 @@ func (c *Controller) processItem(key string) bool {
 	return false
 }
 
-func exitWithError() {
+func (c *Controller) hasErrorWhenStartingContainer(pod *api_v1.Pod) bool {
+	for _, containerStatus := range pod.Status.ContainerStatuses {
+		logrus.Infof("Container (%s) status is %s", containerStatus.Name,
+			containerStatus.State.Waiting)
+
+		if containerStatus.State.Waiting.Reason != "ContainerCreating" {
+			logrus.Errorf("Unable to pull image - [%s]", containerStatus.State.Waiting.Reason)
+			return true
+		}
+
+	}
+	return false
+
+}
+
+func (c *Controller) cleanup() {
+	c.TailClosed <- 1
+	if c.pod != nil {
+		podClient := c.clientset.CoreV1().Pods(c.pod.Namespace)
+		logrus.Infof("Cleaning up pod %s on namespace %s", c.GetPodName(), c.GetPodNamespace())
+		if err := podClient.Delete(c.pod.Name, &meta_v1.DeleteOptions{}); err != nil {
+			logrus.Errorf("Unable to clean up pod %s on namespace %s", c.GetPodName(), c.GetPodNamespace())
+			panic(err)
+		}
+		logrus.Infof("Pod %s on namespace %s is deleted.", c.GetPodName(), c.GetPodNamespace())
+	}
+
+}
+
+func (c *Controller) exitWithError() {
+
+	c.cleanup()
 	os.Exit(1)
 }
 
-func exitNoError() {
+func (c *Controller) exitNoError() {
+	c.cleanup()
 	os.Exit(0)
+}
+
+func (c *Controller) tailLogs() {
+	logrus.Debug("starting tail logs.....")
+	if c.hasTailStarted {
+		logrus.Debug("Tail has already started.....")
+		return
+	}
+	c.hasTailStarted = true
+	podClient := c.clientset.CoreV1().Pods(c.pod.Namespace)
+	podLogOptions := api_v1.PodLogOptions{Follow: true}
+
+	req := podClient.GetLogs(c.GetPodName(), &podLogOptions)
+	logrus.Debug("getting logs.....")
+	stream, err := req.Stream()
+	logrus.Debug("getting logs.....")
+	if err != nil {
+		logrus.Errorf("Error opening stream to %s/%s: \n", c.GetPodNamespace(), c.GetPodName())
+		c.hasTailStarted = false
+		return
+	}
+	defer stream.Close()
+
+	go func() {
+
+		<-c.TailClosed
+		logrus.Debug("Log Stream Closing.....")
+		stream.Close()
+	}()
+
+	reader := bufio.NewReader(stream)
+
+	for {
+
+		line, err := reader.ReadBytes('\n')
+		if err != nil {
+			return
+		}
+
+		str := string(line)
+
+		fmt.Print(str)
+	}
+
+}
+
+func shutdownHook(c *Controller, sigterm <-chan os.Signal) {
+	for {
+		logrus.Infof("shutdown hook called.")
+
+		s := <-sigterm
+		switch s {
+		// kill -SIGHUP XXXX
+		case syscall.SIGHUP:
+			logrus.Errorf("Terminating pod %s on namespace %s", c.GetPodName(), c.GetPodNamespace())
+			c.exitWithError()
+
+		// kill -SIGINT XXXX or Ctrl+c
+		case syscall.SIGINT:
+			logrus.Errorf("Terminating pod %s on namespace %s", c.GetPodName(), c.GetPodNamespace())
+			c.exitWithError()
+
+		// kill -SIGTERM XXXX
+		case syscall.SIGTERM:
+			logrus.Errorf("Terminating pod %s on namespace %s", c.GetPodName(), c.GetPodNamespace())
+			c.exitWithError()
+
+		// kill -SIGQUIT XXXX
+		case syscall.SIGQUIT:
+			logrus.Errorf("Terminating pod %s on namespace %s", c.GetPodName(), c.GetPodNamespace())
+			c.exitWithError()
+
+		default:
+			logrus.Errorf("Unknown signal.")
+		}
+	}
+}
+
+// Retrieve the Pod name associated with this controller
+func (c *Controller) GetPodName() string {
+	var name string
+	if c.pod != nil {
+		name = c.pod.Name
+	}
+	return name
+}
+
+// Retrieves the Namespace associated with this controller
+func (c *Controller) GetPodNamespace() string {
+	var namespace string
+	if c.pod != nil {
+		namespace = c.pod.Namespace
+	}
+	return namespace
 }
