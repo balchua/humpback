@@ -6,12 +6,13 @@ metadata:
     app: {{ .Name }}
     appUnique: {{ .Name }}-{{ .UniqueId }}
 spec:
+  terminationGracePeriodSeconds: 10
+  securityContext:
+    runAsUser: {{ .Container.UID }}
+    fsGroup: {{ .Container.GID }}
   containers:
   - image: {{ .Container.Image }}
     args: [{{ .Container.Arguments }}]
     imagePullPolicy: IfNotPresent
     name: {{ .Name }}
-    securityContext:
-      runAsUser: {{ .Container.UID }}
-      fsGroup: {{ .Container.GID }}
   
