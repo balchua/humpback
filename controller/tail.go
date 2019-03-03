@@ -65,5 +65,7 @@ func (t *Tail) DoTail() {
 
 // CloseTail - signal to close the tail channel
 func (t *Tail) CloseTail() {
-	t.TailClosed <- 1
+	if t != nil {
+		t.TailClosed <- 1
+	}
 }

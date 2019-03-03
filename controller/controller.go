@@ -36,7 +36,7 @@ type Controller struct {
 Start function starts setting up the informer.
 This method also find pods with label appType=installer
 */
-func Start(kubeClient *kubernetes.Clientset, namespace string, listOptions meta_v1.ListOptions) {
+func Start(kubeClient *kubernetes.Clientset, namespace string, podName string, listOptions meta_v1.ListOptions) {
 
 	informer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
@@ -48,7 +48,7 @@ func Start(kubeClient *kubernetes.Clientset, namespace string, listOptions meta_
 			},
 		},
 		&api_v1.Pod{},
-		0, //Skip resync
+		0, // 0 - Skip resync
 		cache.Indexers{},
 	)
 
@@ -76,11 +76,17 @@ func newResourceController(client kubernetes.Interface, informer cache.SharedInd
 	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-
-		UpdateFunc: func(old, new interface{}) {
-			key, err := cache.MetaNamespaceKeyFunc(old)
+		AddFunc: func(obj interface{}) {
+			key, err := cache.MetaNamespaceKeyFunc(obj)
 			if err == nil {
-				logrus.Info("Adding to Queue")
+				logrus.Debugf("AddFunc - Adding to Queue key %s", key)
+				queue.Add(key)
+			}
+		},
+		UpdateFunc: func(old, new interface{}) {
+			key, err := cache.MetaNamespaceKeyFunc(new)
+			if err == nil {
+				logrus.Debugf("UpdateFunc - Adding to Queue key %s", key)
 				queue.Add(key)
 			}
 		},
@@ -93,12 +99,12 @@ func newResourceController(client kubernetes.Interface, informer cache.SharedInd
 	}
 }
 
-// Run starts the podwatcher controller
+// Run starts the pod runner controller
 func (c *Controller) Run(stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	logrus.Info("Starting pod-watcher controller")
+	logrus.Info("Starting pod-runner controller")
 
 	go c.informer.Run(stopCh)
 
@@ -130,7 +136,6 @@ func (c *Controller) runWorker() {
 
 func (c *Controller) processNextItem() bool {
 	key, quit := c.queue.Get()
-
 	if quit {
 		return false
 	}
@@ -234,7 +239,7 @@ func (c *Controller) exitNoError() {
 
 func shutdownHook(c *Controller, sigterm <-chan os.Signal) {
 	for {
-		logrus.Infof("shutdown hook called.")
+		logrus.Infof("shutdown hook ready.")
 
 		s := <-sigterm
 		switch s {

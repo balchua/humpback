@@ -36,10 +36,9 @@ var rootCmd = &cobra.Command{
 
 			listOptions := metav1.ListOptions{
 				LabelSelector: jobHandler.Selector,
-				Limit:         1,
 			}
-
-			controller.Start(clientset, namespace, listOptions)
+			logrus.Errorf("watching for %s", jobHandler.Selector)
+			controller.Start(clientset, namespace, jobHandler.PodName, listOptions)
 		} else {
 			logrus.Errorf("Unable to find app")
 			os.Exit(1)
