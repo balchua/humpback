@@ -14,5 +14,10 @@ spec:
   - image: {{ .Container.Image }}
     args: [{{ .Container.Arguments }}]
     imagePullPolicy: IfNotPresent
+    resources:
+      requests:
+        memory: {{ .Container.resource-requests.memory }}
+      limits:
+        memory: {{ .Container.resource-limits.memory }}
     name: {{ .Name }}
   

@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"log"
+	"os"
 
 	"github.com/balchua/pod-runner/config"
 	"github.com/rs/xid"
@@ -11,6 +12,7 @@ import (
 
 	"html/template"
 
+	getter "github.com/hashicorp/go-getter"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -74,16 +76,47 @@ func (h *Handler) schedulePod() {
 	podClient.Create(pod)
 }
 
+func (h *Handler) getTemplate() string {
+	// Build the client
+	pwd, _ := os.Getwd()
+	id := xid.New()
+	destinationLocation := "/tmp/" + id.String() + ".yaml"
+	getterClient := &getter.Client{
+		Src:     h.appConfig.Template,
+		Dst:     destinationLocation,
+		Pwd:     pwd,
+		Mode:    getter.ClientModeFile,
+		Options: []getter.ClientOption{},
+	}
+	getterClient.Get()
+
+	return getterClient.Dst
+
+}
+
 func (h *Handler) renderTemplate() bool {
+	tmpl := h.getTemplate()
+	logrus.Debugf("template file: %s", tmpl)
 	if h.appConfig.Name != "" {
-		t, _ := template.ParseFiles(h.appConfig.Template)
+		t, _ := template.ParseFiles(tmpl)
 		var tpl bytes.Buffer
 		t.Execute(&tpl, h.appConfig)
 		h.renderedYaml = tpl.String()
 		logrus.Debugf("template content: %s", h.renderedYaml)
+		h.deleteTemplate(tmpl)
 		return true
 	}
 	return false
+}
+
+func (h *Handler) deleteTemplate(tmpl string) {
+	// delete file
+	var err = os.Remove(tmpl)
+	if err != nil {
+		logrus.Errorf("Unable to delete template [%s]", err)
+	}
+
+	logrus.Debugf("==> done deleting file")
 }
 
 func (h *Handler) getAppConfig() {

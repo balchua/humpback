@@ -11,6 +11,18 @@ applications:
     image: balchu/sample:1.0
     uid: 1000
     gid: 1000
+- name: app1-1gb-mem
+  template: https://raw.githubusercontent.com/balchua/pod-runner/master/examples/pod1.tmpl
+  container:
+    resource-requests:
+      memory: 1Gi
+      cpu: 
+    resource-limits:
+      memory: 1Gi
+      cpu: 
+    image: balchu/sample:1.0
+    uid: 1000
+    gid: 1000    
 - name: app2
   template: https://raw.githubusercontent.com/balchua/pod-runner/master/examples/pod1.tmpl
   container:

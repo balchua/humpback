@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"os/signal"
@@ -26,12 +25,11 @@ const maxRetries = 5
 
 // Controller object
 type Controller struct {
-	clientset      kubernetes.Interface
-	queue          workqueue.RateLimitingInterface
-	informer       cache.SharedIndexInformer
-	pod            *api_v1.Pod
-	hasTailStarted bool
-	TailClosed     chan int
+	clientset kubernetes.Interface
+	queue     workqueue.RateLimitingInterface
+	informer  cache.SharedIndexInformer
+	pod       *api_v1.Pod
+	tail      *Tail
 }
 
 /*
@@ -89,10 +87,9 @@ func newResourceController(client kubernetes.Interface, informer cache.SharedInd
 	})
 
 	return &Controller{
-		clientset:  client,
-		informer:   informer,
-		queue:      queue,
-		TailClosed: make(chan int, 1),
+		clientset: client,
+		informer:  informer,
+		queue:     queue,
 	}
 }
 
@@ -161,6 +158,7 @@ func (c *Controller) processItem(key string) bool {
 	if obj != nil {
 		pod := obj.(*api_v1.Pod)
 		c.pod = pod
+		c.initTail()
 		logrus.Infof("Running the pod %s with status %s", pod.ObjectMeta.Name, pod.Status.Phase)
 		if pod.Status.Phase == api_v1.PodFailed {
 			logrus.Errorf("Pod (%s) on namespace (%s) status is %s", pod.ObjectMeta.Name,
@@ -182,7 +180,7 @@ func (c *Controller) processItem(key string) bool {
 
 			logrus.Infof("Pod Job Started (%s) on namespace (%s) status is %s", pod.ObjectMeta.Name,
 				pod.ObjectMeta.Namespace, pod.Status.Phase)
-			go c.tailLogs()
+			go c.tail.DoTail()
 
 		} else {
 			logrus.Infof("Pod (%s) on namespace (%s) status is %s", pod.ObjectMeta.Name,
@@ -210,7 +208,7 @@ func (c *Controller) hasErrorWhenStartingContainer(pod *api_v1.Pod) bool {
 }
 
 func (c *Controller) cleanup() {
-	c.TailClosed <- 1
+	c.tail.CloseTail()
 	if c.pod != nil {
 		podClient := c.clientset.CoreV1().Pods(c.pod.Namespace)
 		logrus.Infof("Cleaning up pod %s on namespace %s", c.GetPodName(), c.GetPodNamespace())
@@ -232,50 +230,6 @@ func (c *Controller) exitWithError() {
 func (c *Controller) exitNoError() {
 	c.cleanup()
 	os.Exit(0)
-}
-
-func (c *Controller) tailLogs() {
-	logrus.Debug("starting tail logs.....")
-	if c.hasTailStarted {
-		logrus.Debug("Tail has already started.....")
-		return
-	}
-	c.hasTailStarted = true
-	podClient := c.clientset.CoreV1().Pods(c.pod.Namespace)
-	podLogOptions := api_v1.PodLogOptions{Follow: true}
-
-	req := podClient.GetLogs(c.GetPodName(), &podLogOptions)
-	logrus.Debug("getting logs.....")
-	stream, err := req.Stream()
-	logrus.Debug("getting logs.....")
-	if err != nil {
-		logrus.Errorf("Error opening stream to %s/%s: \n", c.GetPodNamespace(), c.GetPodName())
-		c.hasTailStarted = false
-		return
-	}
-	defer stream.Close()
-
-	go func() {
-
-		<-c.TailClosed
-		logrus.Debug("Log Stream Closing.....")
-		stream.Close()
-	}()
-
-	reader := bufio.NewReader(stream)
-
-	for {
-
-		line, err := reader.ReadBytes('\n')
-		if err != nil {
-			return
-		}
-
-		str := string(line)
-
-		fmt.Print(str)
-	}
-
 }
 
 func shutdownHook(c *Controller, sigterm <-chan os.Signal) {
@@ -310,7 +264,7 @@ func shutdownHook(c *Controller, sigterm <-chan os.Signal) {
 	}
 }
 
-// Retrieve the Pod name associated with this controller
+// GetPodName - Retrieve the Pod name associated with this controller
 func (c *Controller) GetPodName() string {
 	var name string
 	if c.pod != nil {
@@ -319,11 +273,23 @@ func (c *Controller) GetPodName() string {
 	return name
 }
 
-// Retrieves the Namespace associated with this controller
+// GetPodNamespace - Retrieves the Namespace associated with this controller
 func (c *Controller) GetPodNamespace() string {
 	var namespace string
 	if c.pod != nil {
 		namespace = c.pod.Namespace
 	}
 	return namespace
+}
+
+func (c *Controller) initTail() {
+	if c.tail == nil {
+		c.tail = &Tail{
+			TailClosed:     make(chan int, 1),
+			clientset:      c.clientset,
+			podName:        c.GetPodName(),
+			podNamespace:   c.GetPodNamespace(),
+			hasTailStarted: false,
+		}
+	}
 }
