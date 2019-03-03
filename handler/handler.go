@@ -30,7 +30,6 @@ type Handler struct {
 	renderedYaml          string
 	Selector              string
 	PodScheduled          bool
-	PodName               string
 }
 
 //Init - Initializes the Handler with necessary information
@@ -143,8 +142,6 @@ func (h *Handler) getAppConfig() {
 			app.UniqueId = id.String()
 			app.Container.Arguments = h.command
 			h.appConfig = app
-			h.PodName = app.Name + app.UniqueId
-
 		}
 
 	}

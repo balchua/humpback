@@ -36,7 +36,7 @@ type Controller struct {
 Start function starts setting up the informer.
 This method also find pods with label appType=installer
 */
-func Start(kubeClient *kubernetes.Clientset, namespace string, podName string, listOptions meta_v1.ListOptions) {
+func Start(kubeClient *kubernetes.Clientset, namespace string, listOptions meta_v1.ListOptions) {
 
 	informer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
