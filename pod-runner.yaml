@@ -1,6 +1,6 @@
 applications:
 - name: app1
-  template: /home/thor/workspace/go-work/src/github.com/balchua/pod-runner/examples/pod1.tmpl
+  template: https://raw.githubusercontent.com/balchua/pod-runner/master/examples/pod1.tmpl
   container:
     resource-requests:
       memory: 10Mi
@@ -8,11 +8,11 @@ applications:
     resource-limits:
       memory: 50Mi
       cpu: 10m
-    image: balchua/sample:1.0
+    image: balchu/sample:1.0
     uid: 1000
     gid: 1000
 - name: app2
-  template: /home/thor/workspace/go-work/src/github.com/balchua/pod-runner/examples/pod1.tmpl
+  template: https://raw.githubusercontent.com/balchua/pod-runner/master/examples/pod1.tmpl
   container:
     resource-requests:
       memory: 10Mi
@@ -20,6 +20,6 @@ applications:
     resource-limits:
       memory: 50Mi
       cpu: 10m
-    image: balchua/app1:1.0
+    image: balchu/app1:1.0
     uid: 2000
     gid: 2000
