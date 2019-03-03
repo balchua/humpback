@@ -18,6 +18,6 @@ spec:
       requests:
         memory: {{ .Container.ResourceRequest.Memory }}
       limits:
-        memory: {{ .Container.ResourceLimits.Memory }}
+        memory: {{ .Container.ResourceLimit.Memory }}
     name: {{ .Name }}
   
