@@ -16,8 +16,8 @@ spec:
     imagePullPolicy: IfNotPresent
     resources:
       requests:
-        memory: {{ .Container.resource-requests.memory }}
+        memory: {{ .Container.ResourceRequest.Memory }}
       limits:
-        memory: {{ .Container.resource-limits.memory }}
+        memory: {{ .Container.ResourceLimits.Memory }}
     name: {{ .Name }}
   
