@@ -1,4 +1,4 @@
-module github.com/balchua/pod-runner
+module github.com/balchua/humpback
 
 require (
 	github.com/gogo/protobuf v1.2.0 // indirect

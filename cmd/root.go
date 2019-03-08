@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/balchua/pod-runner/controller"
-	"github.com/balchua/pod-runner/handler"
+	"github.com/balchua/humpback/controller"
+	"github.com/balchua/humpback/handler"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -23,9 +23,9 @@ var namespace string
 var kubeConfig string
 
 var rootCmd = &cobra.Command{
-	Use:   "pod-runner",
-	Short: "Pod-runner is a helper command to deploy a pod and monitor till its completion.",
-	Long:  `Pod-runner is a helper command to deploy a pod and monitor till its completion.  This is useful to integrate with external job orchestration tool.`,
+	Use:   "humpback",
+	Short: "Humpback is a helper command to deploy a pod and monitor till its completion.",
+	Long:  `Humpback is a helper command to deploy a pod and monitor till its completion.  This is useful to integrate with external job orchestration tool.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.Info("Calling getClient()")
 		clientset, _ = getClient()

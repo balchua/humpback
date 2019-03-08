@@ -1,4 +1,4 @@
-# Pod-Runner
+# Humpback
 
 ## Overview
 A simple pod scheduler which waits for the pod's result.  
@@ -12,7 +12,7 @@ This will also allow a more granular resource allocation per job.  This results 
 
 There is a minimum configuration this tool requires.
 
-1. pod-runner.yaml
+1. humpback.yaml
 
 This configuration should contain all the "applications" that the pod runner can schedule.
 
@@ -69,20 +69,20 @@ spec:
       fsGroup: {{ .Container.GID }}
 ```
 
-*Some few notes to remember the pod-runner will automatically set the `restartPolicy` to `Never` otherwise the Pod will go into `CrashLoop`  If possible, set the `activeDeadlineSeconds` to make sure that the Pod does not run indefinitely.*
+*Some few notes to remember the pod runner will automatically set the `restartPolicy` to `Never` otherwise the Pod will go into `CrashLoop`  If possible, set the `activeDeadlineSeconds` to make sure that the Pod does not run indefinitely.*
 
-## Executing the pod-runner
+## Executing the humpback
 
 
 
 ```
-pod-runner --application [your application name] --namespace [the namespace where you want the job to run] --command [the Job's command] --kube-config $KUBECONFIG
+humpback --application [your application name] --namespace [the namespace where you want the job to run] --command [the Job's command] --kube-config $KUBECONFIG
 
 ```
 
 Where:
 
-* `--application` should be the name of the application defined in the `pod-runner.yaml`
+* `--application` should be the name of the application defined in the `humpback.yaml`
 
 * `--namespace` which namespace the pod will be scheduled.
 
@@ -94,8 +94,8 @@ Where:
 
 ## Abrupt shutdown
 
-The pod-runner will react to SIGTERM, SIGQUIT, SIGKILL and SIGHUP.
-Thes os signals will force pod-runner to delete the pod.  Signalling to terminate the "Job".  This is to avoid excessive "completed" or "failed" pods in the cluster, relieving potential cluster space pressure.
+The pod runner will react to SIGTERM, SIGQUIT, SIGKILL and SIGHUP.
+Thes os signals will force humpback to delete the pod.  Signalling to terminate the "Job".  This is to avoid excessive "completed" or "failed" pods in the cluster, relieving potential cluster space pressure.
 
 ## Cleanup
 

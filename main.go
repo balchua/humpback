@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/balchua/pod-runner/cmd"
+	"github.com/balchua/humpback/cmd"
 )
 
 func main() {

@@ -104,7 +104,7 @@ func (c *Controller) Run(stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	logrus.Info("Starting pod-runner controller")
+	logrus.Info("Starting humpback controller")
 
 	go c.informer.Run(stopCh)
 

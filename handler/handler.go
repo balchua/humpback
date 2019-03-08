@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/balchua/pod-runner/config"
+	"github.com/balchua/humpback/config"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -120,7 +120,7 @@ func (h *Handler) deleteTemplate(tmpl string) {
 }
 
 func (h *Handler) getAppConfig() {
-	viper.SetConfigName("pod-runner")
+	viper.SetConfigName("humpback")
 	viper.AddConfigPath(".")
 	var configuration config.Configuration
 
