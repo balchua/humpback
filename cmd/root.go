@@ -79,6 +79,7 @@ func getClient() (*kubernetes.Clientset, error) {
 	return kubernetes.NewForConfig(config)
 }
 
+//Execute this marks the entry point of execution
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
