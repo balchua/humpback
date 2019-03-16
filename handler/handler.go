@@ -30,17 +30,19 @@ type Handler struct {
 	renderedYaml          string
 	Selector              string
 	PodScheduled          bool
+	appConfigLocation     string
 }
 
 //Init - Initializes the Handler with necessary information
-func Init(applicationToSchedule string, namespace string, command string,
+func Init(appParams AppParameters,
 	clientset *kubernetes.Clientset) (h *Handler) {
 
 	handler := &Handler{}
 	handler.clientset = clientset
-	handler.namespace = namespace
-	handler.command = command
-	handler.applicationToSchedule = applicationToSchedule
+	handler.namespace = appParams.Namespace
+	handler.command = appParams.Command
+	handler.applicationToSchedule = appParams.Application
+	handler.appConfigLocation = appParams.ConfigPath
 	handler.getAppConfig()
 
 	return handler
@@ -80,7 +82,7 @@ func (h *Handler) getTemplate() string {
 	// Build the client
 	pwd, _ := os.Getwd()
 	id := xid.New()
-	destinationLocation := "/tmp/" + id.String() + ".yaml"
+	destinationLocation := os.TempDir() + "/hb-" + id.String() + ".yaml"
 	getterClient := &getter.Client{
 		Src:     h.appConfig.Template,
 		Dst:     destinationLocation,
@@ -121,6 +123,11 @@ func (h *Handler) deleteTemplate(tmpl string) {
 
 func (h *Handler) getAppConfig() {
 	viper.SetConfigName("humpback")
+
+	if h.appConfigLocation != "" {
+		viper.AddConfigPath(h.appConfigLocation)
+	}
+
 	viper.AddConfigPath(".")
 	var configuration config.Configuration
 

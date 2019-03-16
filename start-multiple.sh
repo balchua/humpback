@@ -5,7 +5,7 @@ n=1
 while [ $n -le 10 ]
 do
 	echo "Welcome $n times."
-	./humpback --application app1-1gb-mem -k $KUBECONFIG -n default -c /usr/src/app/main-good.sh &
+	./humpback --application app1 -k $KUBECONFIG -n default -c /usr/src/app/main-good.sh &
         n=$(( n+1 ))	 # increments $n
 done
 

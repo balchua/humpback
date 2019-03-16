@@ -17,10 +17,7 @@ import (
 
 var clientset *kubernetes.Clientset
 
-var application string
-var command string
-var namespace string
-var kubeConfig string
+var appParams handler.AppParameters
 
 var rootCmd = &cobra.Command{
 	Use:   "humpback",
@@ -29,7 +26,7 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.Info("Calling getClient()")
 		clientset, _ = getClient()
-		jobHandler := handler.Init(application, namespace, command, clientset)
+		jobHandler := handler.Init(appParams, clientset)
 		jobHandler.Schedule()
 
 		if jobHandler.PodScheduled {
@@ -37,7 +34,7 @@ var rootCmd = &cobra.Command{
 			listOptions := metav1.ListOptions{
 				LabelSelector: jobHandler.Selector,
 			}
-			controller.Start(clientset, namespace, listOptions)
+			controller.Start(clientset, appParams.Namespace, listOptions)
 		} else {
 			logrus.Errorf("Unable to find app")
 			os.Exit(1)
@@ -46,6 +43,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
+	appParams = handler.AppParameters{}
 	logrus.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true})
 
@@ -55,23 +53,28 @@ func init() {
 	// Only log the warning severity or above.
 	logrus.SetLevel(logrus.DebugLevel)
 
-	rootCmd.PersistentFlags().StringVarP(&application, "application", "a", "", "The application to run.")
-	rootCmd.PersistentFlags().StringVarP(&command, "command", "c", "", "The Job to run.")
-	rootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "Deploy Pod to which namespace.")
-	rootCmd.PersistentFlags().StringVarP(&kubeConfig, "kube-config", "k", "", "Kubernetes Configuration to use, when running outside the cluster.")
+	rootCmd.PersistentFlags().StringVarP(&appParams.Application, "application", "a", "", "The application to run.")
+	rootCmd.MarkPersistentFlagRequired("application")
+	rootCmd.PersistentFlags().StringVarP(&appParams.Command, "command", "c", "", "The Job to run.")
+	rootCmd.MarkPersistentFlagRequired("command")
+	rootCmd.PersistentFlags().StringVarP(&appParams.Namespace, "namespace", "n", "", "Deploy Pod to which namespace.")
+	rootCmd.MarkPersistentFlagRequired("namespace")
+	rootCmd.PersistentFlags().StringVarP(&appParams.KubeConfig, "kubeconfig", "k", "", "Kubernetes Configuration to use, when running outside the cluster.")
+
+	rootCmd.PersistentFlags().StringVarP(&appParams.ConfigPath, "appconfig-path", "p", "", "The path to the application config, i.e humpback.yaml.  Do not include the filename, just the directory.")
 
 }
 
 func getClient() (*kubernetes.Clientset, error) {
 	var config *rest.Config
 	var err error
-	if kubeConfig == "" {
+	if appParams.KubeConfig == "" {
 		logrus.Debug("Using in cluster config")
 		config, err = rest.InClusterConfig()
 		// in cluster access
 	} else {
 		logrus.Debug("Using out of cluster config")
-		config, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
+		config, err = clientcmd.BuildConfigFromFlags("", appParams.KubeConfig)
 	}
 	if err != nil {
 		return nil, err
