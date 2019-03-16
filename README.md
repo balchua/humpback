@@ -73,22 +73,22 @@ spec:
 
 ## Executing the humpback
 
-
-
 ```
-humpback --application [your application name] --namespace [the namespace where you want the job to run] --command [the Job's command] --kube-config $KUBECONFIG
+humpback --application [your application name] --namespace [the namespace where you want the job to run] --command [the Job's command] --kube-config $KUBECONFIG --appconfig-path /tmp
 
 ```
 
 Where:
 
-* `--application` should be the name of the application defined in the `humpback.yaml`
+* `--application` or `-a` should be the name of the application defined in the `humpback.yaml`
 
-* `--namespace` which namespace the pod will be scheduled.
+* `--namespace` or `-n` which namespace the pod will be scheduled.
 
-* `--command` The actual command to run.
+* `--command` or `-c` The actual command to run.
 
-* `--kube-config`  If you are running this outside the Kubernetes cluster, specify this, otherwise leave it empty.
+* `--kubeconfig`  or `-k` If you are running this outside the Kubernetes cluster, specify this, otherwise leave it empty.
+
+* `--appconfig-path` or `-p` Additional path to search for humpback application config.  example `/tmp/`
 
 *Any Pod Status, that results to other than `Successful` will be returned as an error i.e. `exit(1)`*
 
